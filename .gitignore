@@ -1,0 +1,9 @@
+node_modules/
+__pycache__/
+*.pyc
+.env
+npm-debug.log
+.expo/
+dist/
+build/
+.DS_Store
