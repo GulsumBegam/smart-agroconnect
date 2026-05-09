@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agro}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agrosecret}
+      POSTGRES_DB: ${POSTGRES_DB:-agroconnect}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agro}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongo:
+    image: mongo:6
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-agro}:${POSTGRES_PASSWORD:-agrosecret}@postgres:5432/${POSTGRES_DB:-agroconnect}
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017/agroconnect}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-change-in-prod}
+      ML_SERVICE_URL: ${ML_SERVICE_URL:-http://ml-service:8000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:
+  mongodata:
