@@ -33,5 +33,21 @@ app.use((req, res) => {
 // ── Error handler ─────────────────────────────────────────
 app.use((err, req, res, _next) => {
   console.error("Unhandled error:", err);
-  res.status(500).json({ error: "Internal s
+  res.status(500).json({ error: "Internal server error" });
+});
 
+// ── Start ─────────────────────────────────────────────────
+async function start() {
+  try {
+    await getPostgres();
+    await getMongo();
+    app.listen(PORT, () => {
+      console.log(`🌾 AgroConnect Backend running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("Failed to start:", err);
+    process.exit(1);
+  }
+}
+
+start();
