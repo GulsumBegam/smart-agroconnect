@@ -7,10 +7,13 @@ let pgPool;
 async function getPostgres() {
   if (!pgPool) {
     pgPool = new Pool({
-      connectionString:
-        process.env.DATABASE_URL ||
-        "postgresql://agro:agrosecret@localhost:5432/agroconnect",
-    });
+  connectionString:
+    process.env.DATABASE_URL ||
+    "postgresql://agro:agrosecret@localhost:5432/agroconnect",
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
     // Create tables if not exist
     await pgPool.query(`
       CREATE TABLE IF NOT EXISTS users (
