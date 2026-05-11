@@ -41,9 +41,9 @@ async function start() {
   try {
     await getPostgres();
     await getMongo();
-    app.listen(PORT, () => {
-      console.log(`🌾 AgroConnect Backend running on port ${PORT}`);
-    });
+   app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🌾 AgroConnect Backend running on port ${PORT}`);
+});
   } catch (err) {
     console.error("Failed to start:", err);
     process.exit(1);
