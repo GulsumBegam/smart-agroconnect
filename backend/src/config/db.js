@@ -1,36 +1,45 @@
-const express = require("express");
-const cors = require("cors");
-const { getPostgres, getMongo } = require("./config/db");
+const { Pool } = require("pg");
+const { MongoClient } = require("mongodb");
 
-const authRoutes = require("./routes/auth");
-const listingRoutes = require("./routes/listings");
-const predictRoutes = require("./routes/predict");
-const soilRoutes = require("./routes/soil");
+// ── Postgres ──────────────────────────────────────────────
+let pgPool;
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+async function getPostgres() {
+  if (!pgPool) {
+    pgPool = new Pool({
+      connectionString:
+        process.env.DATABASE_URL ||
+        "postgresql://agro:agrosecret@localhost:5432/agroconnect",
+    });
+    // Create tables if not exist
+    await pgPool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        phone VARCHAR(20) UNIQUE NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        password_hash VARCHAR(200) NOT NULL,
+        role VARCHAR(20) DEFAULT 'farmer',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    console.log("✅ Postgres connected & tables ready");
+  }
+  return pgPool;
+}
 
-// ── Middleware ─────────────────────────────────────────────
-app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+// ── MongoDB ───────────────────────────────────────────────
+let mongoDb;
 
-// ── Health check ──────────────────────────────────────────
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
+async function getMongo() {
+  if (!mongoDb) {
+    const client = new MongoClient(
+      process.env.MONGO_URI || "mongodb://localhost:27017/agroconnect"
+    );
+    await client.connect();
+    mongoDb = client.db("agroconnect");
+    console.log("✅ Mongo connected");
+  }
+  return mongoDb;
+}
 
-// ── Routes ────────────────────────────────────────────────
-app.use("/api/auth", authRoutes);
-app.use("/api/listings", listingRoutes);
-app.use("/api/predict", predictRoutes);
-app.use("/api/soil", soilRoutes);
-
-// ── 404 ───────────────────────────────────────────────────
-app.use((req, res) => {
-  res.status(404).json({ error: "Not found" });
-});
-
-// ── Error handler ─────────────────────────────────────────
-app.use((err, req, res, _next) => {
-  console.error("Unhandled error:", err);
-  res.status(500).json({ error: "Internal s
+module.exports = { getPostgres, getMongo };
